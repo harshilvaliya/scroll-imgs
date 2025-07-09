@@ -1,7 +1,30 @@
-import slides from "./slides";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import Lenis from "lenis";
+const slides = [
+  {
+    title: "Desert Oasis Pool",
+    image: "img1.png",
+    url: "https://www.youtube.com/",
+  },
+  {
+    title: "Mountain Landscape",
+    image: "img2.png",
+    url: "https://www.youtube.com/",
+  },
+  {
+    title: "Coastal Sunset",
+    image: "img3.png",
+    url: "https://www.youtube.com/",
+  },
+  {
+    title: "Forest Path",
+    image: "img4.png",
+    url: "https://www.youtube.com/",
+  },
+  {
+    title: "Urban Skyline",
+    image: "img5.png",
+    url: "https://www.youtube.com/",
+  },
+];
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -14,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   gsap.ticker.lagSmoothing(0);
 
   const slidesImages = document.querySelector(".slide-images");
-  const titleElement = document.getElementById(".title-text");
+  const titleElement = document.getElementById("title-text");
   const exploreLink = document.querySelector(".slide-link a");
 
   const totalSlides = slides.length;
@@ -23,6 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let queuedTitleIndex = null;
   const titleChangeThreshold = 0.5;
   let isAnimating = false;
+
+  console.log("Total slides:", totalSlides, "Strips per image:", stripsCount);
 
   const firstSlideImg = document.querySelector("#img-1 img");
   firstSlideImg.style.transform = "scale(1.25)";
@@ -56,20 +81,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     slidesImages.appendChild(imgContainer);
+    console.log(`Created imgContainer for slide ${i + 1}`);
   }
 
   const transitionCount = totalSlides - 1;
   const scrollDistancePerTransition = 1000;
-  const initailScrollDelay = 300;
+  const initialScrollDelay = 300;
   const finalScrollDelay = 300;
 
   const totalScrollDistance =
     transitionCount * scrollDistancePerTransition +
-    initailScrollDelay +
+    initialScrollDelay +
     finalScrollDelay;
 
   const transitionRanges = [];
-  let currentScrollPosition = initailScrollDelay;
+  let currentScrollPosition = initialScrollDelay;
 
   for (let i = 0; i < transitionCount; i++) {
     const transitionStart = currentScrollPosition;
@@ -83,24 +109,28 @@ document.addEventListener("DOMContentLoaded", () => {
       endPercent: transitionEnd / totalScrollDistance,
     });
     currentScrollPosition = transitionEnd;
+    console.log(
+      `Transition range ${i}:`,
+      transitionRanges[transitionRanges.length - 1]
+    );
   }
 
   function calculateImageProgress(scrollProgress) {
     let imageProgress = 0;
-
+    console.log(
+      "Calculating image progress for scrollProgress:",
+      scrollProgress
+    );
     if (scrollProgress < transitionRanges[0].startPercent) {
       return 0;
     }
-
     if (
       scrollProgress > transitionRanges[transitionRanges.length - 1].endPercent
     ) {
       return transitionRanges.length;
     }
-
     for (let i = 0; i < transitionRanges.length; i++) {
       const range = transitionRanges[i];
-
       if (
         scrollProgress >= range.startPercent &&
         scrollProgress <= range.endPercent
@@ -108,8 +138,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const rangeSize = range.endPercent - range.startPercent;
         const normalizedProgress =
           (scrollProgress - range.startPercent) / rangeSize;
-
         imageProgress = i + normalizedProgress;
+        console.log(`Image progress in range ${i}:`, imageProgress);
         break;
       } else if (scrollProgress > range.endPercent) {
         imageProgress = i + 1;
@@ -121,31 +151,34 @@ document.addEventListener("DOMContentLoaded", () => {
   function getScaleForImage(imageIndex, currentImageIndex, progress) {
     if (imageIndex > currentImageIndex) return 1.25;
     if (imageIndex < currentImageIndex - 1) return 1;
-
     let totalProgress =
       imageIndex === currentImageIndex ? progress : 1 + progress;
-    return 1.25 - (0.25 * totalProgress) / 2;
+    const scale = 1.25 - (0.25 * totalProgress) / 2;
+    console.log(`Scale for image ${imageIndex}:`, scale);
+    return scale;
   }
 
   function animateTitleChange(index, direction) {
+    console.log(
+      "Animating title change to index:",
+      index,
+      "direction:",
+      direction
+    );
     if (index === currentTitleIndex) return;
     if (index < 0 || index >= slides.length) return;
-
     if (isAnimating) {
       queuedTitleIndex = index;
+      console.log("Animation in progress, queueing title index:", index);
       return;
     }
-
     isAnimating = true;
     const newTitle = slides[index].title;
     const newUrl = slides[index].url;
     const outY = direction === "down" ? "-120%" : "120%";
     const inY = direction === "down" ? "120%" : "-120%";
-
     gsap.KillTweensOf(titleElement);
-
     exploreLink.href = newUrl;
-
     gsap.to(titleElement, {
       y: outY,
       duration: 0.5,
@@ -153,7 +186,6 @@ document.addEventListener("DOMContentLoaded", () => {
       onComplete: () => {
         titleElement.textContent = newTitle;
         gsap.set(titleElement, { y: inY });
-
         gsap.to(titleElement, {
           y: "0%",
           duration: 0.5,
@@ -161,7 +193,10 @@ document.addEventListener("DOMContentLoaded", () => {
           onComplete: () => {
             currentTitleIndex = index;
             isAnimating = false;
-
+            console.log(
+              "Title animation complete. Current title index:",
+              currentTitleIndex
+            );
             if (
               queuedTitleIndex !== null &&
               queuedTitleIndex !== currentTitleIndex
@@ -176,6 +211,110 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-function getTitleIndexForProgress(imageProgress){}
+  function getTitleIndexForProgress(imageProgress) {
+    const imageIndex = Math.floor(imageProgress);
+    const imageSpecificProgress = imageProgress - imageIndex;
+    const idx =
+      imageSpecificProgress >= titleChangeThreshold
+        ? Math.min(imageIndex + 1, slides.length - 1)
+        : imageIndex;
+    console.log("Title index for imageProgress", imageProgress, "is", idx);
+    return idx;
+  }
 
+  let lastImageProgress = 0;
+
+  ScrollTrigger.create({
+    trigger: ".sticky-slider",
+    start: "top top",
+    end: `+=${totalScrollDistance}vh`,
+    pin: true,
+    pinSpacing: true,
+    scrub: 1,
+    invalidateOnRefresh: true,
+    onUpdate: (self) => {
+      const imageProgress = calculateImageProgress(self.progress);
+      console.log(
+        "ScrollTrigger update: progress=",
+        self.progress,
+        "imageProgress=",
+        imageProgress
+      );
+      if (typeof imageProgress === "number") {
+        const scrollDirection =
+          imageProgress > lastImageProgress ? "down" : "up";
+        const currentImageIndex = Math.floor(imageProgress);
+        const imageSpecificProgress = imageProgress - currentImageIndex;
+        const correctTitleIndex = getTitleIndexForProgress(imageProgress);
+        if (correctTitleIndex !== currentImageIndex) {
+          queuedTitleIndex = correctTitleIndex;
+          if (!isAnimating) {
+            animateTitleChange(correctTitleIndex, scrollDirection);
+          }
+        }
+        const firstSlideImgScale = getScaleForImage(
+          0,
+          currentImageIndex,
+          imageSpecificProgress
+        );
+        firstSlideImg.style.transform = `scale(${firstSlideImgScale})`;
+        for (let i = 1; i < totalSlides; i++) {
+          const imgIndex = i + 1;
+          const transitionIndex = imgIndex - 2;
+          const imgContainer = document.getElementById(
+            `img-container-${imgIndex}`
+          );
+          if (!imgContainer) continue;
+          imgContainer.style.opacity = "1";
+          const strips = imgContainer.querySelectorAll(".strip");
+          const images = imgContainer.querySelectorAll("img");
+          if (transitionIndex < currentImageIndex) {
+            strips.forEach((strip, stripIndex) => {
+              const stripPositionFromBottom = stripsCount - stripIndex - 1;
+              const stripUpperBound =
+                stripPositionFromBottom * (100 / stripsCount);
+              const stripLowerBound =
+                (stripPositionFromBottom + 1) * (100 / stripsCount);
+              strip.style.clipPath = `polygon(0% ${stripLowerBound}%, 100% ${stripLowerBound}%, 100% ${
+                stripUpperBound - 0.1
+              }%, 0% ${stripUpperBound - 0.1}%)`;
+            });
+          } else if (transitionIndex === currentImageIndex) {
+            strips.forEach((strip, stripIndex) => {
+              const stripPositionFromBottom = stripsCount - stripIndex - 1;
+              const stripUpperBound =
+                stripPositionFromBottom * (100 / stripsCount);
+              const stripLowerBound =
+                (stripPositionFromBottom + 1) * (100 / stripsCount);
+              const stripDelay = (stripIndex / stripsCount) * 0.5;
+              const adjustedProgress = Math.max(
+                0,
+                Math.min(1, (imageSpecificProgress - stripDelay) * 2)
+              );
+              const currentstripUpperBound =
+                stripLowerBound -
+                (stripLowerBound - (stripUpperBound - 0.1)) * adjustedProgress;
+              strip.style.clipPath = `polygon(0% ${stripLowerBound}%, 100% ${stripLowerBound}%, 100% ${currentstripUpperBound}%, 0% ${currentstripUpperBound}%,)`;
+            });
+          } else {
+            strips.forEach((strip, stripIndex) => {
+              const stripPositionFromBottom = stripsCount - stripIndex - 1;
+              const stripLowerBound =
+                (stripPositionFromBottom + 1) * (100 / stripsCount);
+              strip.style.clipPath = `polygon(0% ${stripLowerBound}%, 100% ${stripLowerBound}%, 100% ${stripLowerBound}%, 0% ${stripLowerBound}%,)`;
+            });
+          }
+          const imgScale = getScaleForImage(
+            transitionIndex,
+            currentImageIndex,
+            imageSpecificProgress
+          );
+          images.forEach((img) => {
+            img.style.transform = `scale(${imgScale})`;
+          });
+          lastImageProgress = imageProgress;
+        }
+      }
+    },
+  });
 });
